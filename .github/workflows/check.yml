@@ -1,0 +1,26 @@
+name: check
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: ./.github/actions/install-nix
+      - uses: arduino/setup-task@main
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          nix flake update
+          nix fmt --show-trace -L
+          nix-env -i nix-fast-build -f '<nixpkgs>'
+          nix-fast-build --skip-cached --no-download --no-nom --flake ".#checks.$(nix eval --raw --impure --expr builtins.currentSystem)"
+      - run: |
+          nix-env -i nixf-diagnose -f '<nixpkgs>'
+          nixf-diagnose nixos/noirriko/configuration.nix
+          nix run github:nix-community/nixpkgs-lint -- .

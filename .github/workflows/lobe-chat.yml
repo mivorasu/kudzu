@@ -1,0 +1,25 @@
+name: lobe-chat
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_LOBE_CHAT }}
+on:
+  schedule:
+    - cron: 0 18 * * *
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - id: get_tag
+        run: |
+          tag=$(curl -s https://api.github.com/repos/lobehub/lobe-chat/releases/latest | jq -r .tag_name)
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+        with:
+          repository: lobehub/lobe-chat
+          ref: ${{ steps.get_tag.outputs.tag }}
+      - run: |
+          npm install --global vercel@latest
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
